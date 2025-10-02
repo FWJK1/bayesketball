@@ -19,7 +19,13 @@ learn more about.
 
 # Learning Objectives
 
-    Note: should be different for each team member.
+## Prithaj
+
+## Nate
+
+## Fitz
+
+By the time this project is completed, I will have learned how to work with Bayesian Hierarchical models, helping both with breaking down large predictive problems into smaller pieces and increasing familiarity with `MCMC` modelling using {INSERT TOOLKIT WE WANT TO USE, I WOLD ARGUE FOR JULIA or PYTHON}. This will invovlve substantial work developing new models and priors, as well as an integration of `MCMC` specific libraries into a data retrieval and storage framework. In addition, I will build familiarity with setting up pipelines with APIs such that we can automatically update our model as the season goes on. Broadly speaking, I expect more learning to occur on the Bayesian side of things then the data science side, just because I have already completed projects requiring at-scale data retrieval and processing, but I still expect to learn a lot from putting the two together. Also, in all previous projects I've completed of this sort I have generally been the best at coding, so I'm looking forward to learning from the more experience Prithaj and Nate and stepping up a bit more in the logistic and analytic aspects.
 
 # Project idea
 
@@ -44,6 +50,12 @@ Proceeding 'down' to our original priors, something like this:
     2. Expected playing time: based just on by their previous playing time (with injury = removed from team, not no playing time)
 
 ## Comparison Models
+
+In addition to our Bayesian model, we will construct several machine learning comparison models to get a sense of total accuracy. While many ML models give raw predictions, not probability distributions, we're working on it by: { OTHERS CHIP IN}
+
+-   Frequentist Linear Regression
+-   Bayesian Linear Regression
+-   Random Forest: gives raw predictions, but we can use the variation of predictions to approximate a normal pdf.
 
 # References
 
