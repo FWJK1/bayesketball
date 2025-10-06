@@ -21,6 +21,8 @@ learn more about.
 
 ## Prithaj
 
+Implement Bayesian regression or other Bayesian ML techniques on a sizeable dataset that requires more computation power than a laptop can handle. Stretch goal would be to build an interactive dashboard that lets you pick teams and set player level metrics, and then runs the model to create posteriors for those teams.
+
 ## Nate
 
 ## Fitz
