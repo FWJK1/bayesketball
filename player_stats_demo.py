@@ -26,12 +26,7 @@ from nba_db.player_stats import (
 
 
 def setup_logging(level=logging.INFO):
-    """Set up logging configuration for async operations using the existing logger system."""
-
-    # Set the log level for the player stats logger
     set_log_level(level)
-
-    # Also get a logger for this demo script
     logger = get_simple_logger("async_demo", level)
 
     return logger
@@ -67,7 +62,6 @@ def save_results_to_csv(results: dict, filename_prefix: str = "player_stats") ->
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
     filename = f"{filename_prefix}_{timestamp}.csv"
 
-    # Convert results to DataFrame
     rows = []
     for game_id, game_data in results.items():
         for player_id, stats in game_data.items():
@@ -86,7 +80,6 @@ async def calculate_player_stats_for_game(
     """Calculate player stats for a specific game."""
     logger.info(f"Processing game {game_id}")
 
-    # Get all players for this game
     player_ids = get_players_for_game(conn, game_id)
     logger.info(f"Found {len(player_ids)} players for game {game_id}")
 
@@ -107,11 +100,9 @@ async def calculate_player_stats_for_game(
 async def calculate_all_player_stats(game_id: str = None):
     """Calculate player stats for a specific game or all games."""
 
-    # Set up logging
     logger = setup_logging(logging.INFO)
     logger.info("Starting player stats calculation")
 
-    # Connect to database
     conn = sqlite3.connect("db/nba.sqlite")
 
     try:
@@ -139,12 +130,10 @@ async def calculate_all_player_stats(game_id: str = None):
                 if i % 10 == 0:
                     logger.info(f"Completed {i}/{len(all_games)} games")
 
-        # Save results to CSV
         logger.info("Saving results to CSV")
         filename = save_results_to_csv(all_results, "player_stats")
         logger.info(f"Results saved to: {filename}")
 
-        # Display summary
         total_players = sum(len(game_data) for game_data in all_results.values())
         logger.info(
             f"Summary: Processed {len(all_results)} games, {total_players} total player records"
@@ -178,10 +167,7 @@ def parse_arguments():
 async def main():
     """Main function to run the player stats calculation."""
 
-    # Parse command line arguments
     args = parse_arguments()
-
-    # Set up logging level
     log_level = logging.DEBUG if args.debug else logging.INFO
 
     print("NBA Player Stats Calculator")
@@ -194,7 +180,6 @@ async def main():
 
     print("=" * 50)
 
-    # Run the calculation
     start_time = time.time()
     results = await calculate_all_player_stats(args.game_id)
     end_time = time.time()
@@ -213,5 +198,4 @@ async def main():
 
 
 if __name__ == "__main__":
-    # Run the async main function
     asyncio.run(main())
