@@ -14,7 +14,6 @@ from typing import Any, Dict, List, Optional, Tuple
 import numpy as np
 import pandas as pd
 
-from nba_db.event_mapping import get_event_description
 from nba_db.logger import get_simple_logger
 
 # Set up logger for async operations using the existing logger system
