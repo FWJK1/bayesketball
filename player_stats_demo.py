@@ -1,9 +1,7 @@
 #!/usr/bin/env python3
 """
-Example script demonstrating async player stats calculation with logging.
-
-This script shows how to use the async methods with proper logging configuration
-to monitor and debug the async operations.
+uv run player_stats_demo.py --game-id 0022300001
+This is the script to calculate the player stats for all games in the database. Most of the heavy lifting is done in the db
 """
 
 import argparse
