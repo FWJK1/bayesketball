@@ -325,3 +325,13 @@ Where:
 ## Future Enhancements
 
 -   **Full player list**: Currently we are only calculating player stats for active players, which still creates 35 million rows (#active players x #games). If we have time we can compute stats for all players, but that would mean we'd have to generate ~144 million rows.
+
+## Credits
+
+Written by
+
+-   Prithaj Nath
+-   Nate Borland
+-   Fitz Koch
+    fw.j.keenan.koch@gmail.com
+    fkeenank@uvm.edu
