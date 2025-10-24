@@ -12,21 +12,21 @@ from enum import Enum
 class EventType(Enum):
     """NBA event message types (eventmsgtype)."""
 
-    MADE_SHOT = 1
-    MISSED_SHOT = 2
-    FREE_THROW = 3
-    REBOUND = 4
-    TURNOVER = 5
-    FOUL = 6
-    VIOLATION = 7
-    SUBSTITUTION = 8
-    TIMEOUT = 9
-    JUMP_BALL = 10
-    EJECTION = 11
-    START_OF_PERIOD = 12
-    END_OF_PERIOD = 13
-    INSTANT_REPLAY = 18
-    STOPPAGE = 20
+    MADE_SHOT = 1            # Switches (ball to defense on inbound)
+    MISSED_SHOT = 2          # No change; rebound decides
+    FREE_THROW = 3           # Last attempt: made → switch; missed → rebound decides
+    REBOUND = 4              # Sets possession to rebounder’s team
+    TURNOVER = 5             # Switches (to defense or steal team)
+    FOUL = 6                 # No switch unless offensive foul → switch
+    VIOLATION = 7            # Usually switch; lane violations during FT: context needed
+    SUBSTITUTION = 8         # No change
+    TIMEOUT = 9              # No change
+    JUMP_BALL = 10           # Possession set to tip winner
+    EJECTION = 11            # No change by itself
+    START_OF_PERIOD = 12     # No change by itself; possession set by jump ball rule
+    END_OF_PERIOD = 13       # Ends possession
+    INSTANT_REPLAY = 18      # No change by itself
+    STOPPAGE = 20            # No change by itself (timeout-like)
 
 
 class ActionType(Enum):

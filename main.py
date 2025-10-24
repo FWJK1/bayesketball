@@ -63,7 +63,7 @@ async def main():
     logger = setup_logging(log_level)
 
     # Initialize calculator
-    calculator = PlayerStatsCalculator(db_path="db/nba.sqlite")
+    calculator = PlayerStatsCalculator(db_path="data/nba.sqlite")
 
     start_time = time.time()
 
