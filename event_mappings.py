@@ -1,365 +1,167 @@
 #!/usr/bin/env python3
 """
-Event Mappings Script for NBA Database
+Event Mappings for NBA Database
 
-This script prints out all the event types and action types found in the NBA database
-in a readable format, along with their descriptions and statistics.
+This module defines Enum classes for NBA event types and action types
+to provide readable constants for use in SQL queries.
 """
 
-import sqlite3
-import pandas as pd
-from collections import defaultdict
+from enum import Enum
 
 
-def get_event_type_mapping():
-    """Get the mapping of event message types to descriptions."""
-    return {
-        1: "Made Shot",
-        2: "Missed Shot",
-        3: "Free Throw",
-        4: "Rebound",
-        5: "Turnover",
-        6: "Foul",
-        7: "Violation",
-        8: "Substitution",
-        9: "Timeout",
-        10: "Jump Ball",
-        11: "Ejection",
-        12: "Start of Period",
-        13: "End of Period",
-        18: "Instant Replay",
-        20: "Stoppage",
-    }
+class EventType(Enum):
+    """NBA event message types (eventmsgtype)."""
+
+    MADE_SHOT = 1
+    MISSED_SHOT = 2
+    FREE_THROW = 3
+    REBOUND = 4
+    TURNOVER = 5
+    FOUL = 6
+    VIOLATION = 7
+    SUBSTITUTION = 8
+    TIMEOUT = 9
+    JUMP_BALL = 10
+    EJECTION = 11
+    START_OF_PERIOD = 12
+    END_OF_PERIOD = 13
+    INSTANT_REPLAY = 18
+    STOPPAGE = 20
 
 
-def get_action_type_mapping():
-    """Get the mapping of action types to descriptions."""
-    return {
-        # Made Shot actions
-        1: "Jump Shot",
-        2: "Layup Shot",
-        3: "Dunk Shot",
-        4: "Hook Shot",
-        5: "Bank Shot",
-        6: "Fadeaway Shot",
-        7: "3-Point Jump Shot",
-        8: "Running Jump Shot",
-        9: "Driving Jump Shot",
-        10: "Turnaround Jump Shot",
-        11: "Step Back Jump Shot",
-        12: "Pullup Jump Shot",
-        13: "Floating Jump Shot",
-        14: "Finger Roll Layup",
-        15: "Driving Layup",
-        16: "Reverse Layup",
-        17: "Alley Oop Layup",
-        18: "Putback Layup",
-        19: "Driving Dunk",
-        20: "Alley Oop Dunk",
-        21: "Putback Dunk",
-        22: "Reverse Dunk",
-        23: "Hook Shot",
-        24: "Bank Hook Shot",
-        25: "Turnaround Hook Shot",
-        26: "Fadeaway Hook Shot",
-        27: "Tip Shot",
-        28: "Cutting Layup",
-        29: "Cutting Dunk",
-        30: "Cutting Finger Roll",
-        # Missed Shot actions (100+ series)
-        101: "Jump Shot",
-        102: "Layup Shot",
-        103: "Dunk Shot",
-        104: "Hook Shot",
-        105: "Bank Shot",
-        106: "Fadeaway Shot",
-        107: "3-Point Jump Shot",
-        108: "Running Jump Shot",
-        109: "Driving Jump Shot",
-        110: "Turnaround Jump Shot",
-        111: "Step Back Jump Shot",
-        112: "Pullup Jump Shot",
-        113: "Floating Jump Shot",
-        114: "Finger Roll Layup",
-        115: "Driving Layup",
-        116: "Reverse Layup",
-        117: "Alley Oop Layup",
-        118: "Putback Layup",
-        119: "Driving Dunk",
-        120: "Alley Oop Dunk",
-        121: "Putback Dunk",
-        122: "Reverse Dunk",
-        123: "Hook Shot",
-        124: "Bank Hook Shot",
-        125: "Turnaround Hook Shot",
-        126: "Fadeaway Hook Shot",
-        127: "Tip Shot",
-        128: "Cutting Layup",
-        129: "Cutting Dunk",
-        130: "Cutting Finger Roll",
-        # Free Throw actions
-        133: "Free Throw Made",
-        134: "Free Throw Missed",
-        # Rebound actions
-        137: "Offensive Rebound",
-        138: "Defensive Rebound",
-        # Turnover actions
-        141: "Steal",
-        142: "Bad Pass",
-        143: "Lost Ball",
-        144: "Traveling",
-        145: "3 Second Violation",
-        146: "5 Second Violation",
-        147: "8 Second Violation",
-        148: "24 Second Violation",
-        149: "Backcourt Violation",
-        150: "Double Dribble",
-        151: "Out of Bounds",
-        152: "Offensive Goaltending",
-        153: "Shot Clock Violation",
-        154: "Palming",
-        155: "Kicked Ball",
-        156: "Lane Violation",
-        157: "Jump Ball Violation",
-        158: "Illegal Screen",
-        159: "Illegal Assist",
-        160: "Illegal Defense",
-        161: "Illegal Offense",
-        162: "Illegal Substitution",
-        163: "Illegal Timeout",
-        164: "Illegal Use of Hands",
-        165: "Illegal Contact",
-        166: "Excessive Timeout",
-        167: "Delay of Game",
-        168: "Technical Foul",
-        169: "Flagrant Foul",
-        170: "Unsportsmanlike Foul",
-        171: "Disqualifying Foul",
-        172: "Fighting",
-        173: "Ejection",
-        174: "Coach Technical",
-        175: "Bench Technical",
-        176: "Delay of Game Technical",
-        177: "Excessive Timeout Technical",
-        178: "Illegal Defense Technical",
-        179: "Illegal Offense Technical",
-        180: "Illegal Substitution Technical",
-        181: "Illegal Timeout Technical",
-        182: "Illegal Use of Hands Technical",
-        183: "Illegal Contact Technical",
-        184: "Excessive Timeout Technical",
-        185: "Delay of Game Technical",
-        186: "Technical Foul",
-        187: "Flagrant Foul",
-        188: "Unsportsmanlike Foul",
-        189: "Disqualifying Foul",
-        190: "Fighting",
-        191: "Ejection",
-        192: "Coach Technical",
-        193: "Bench Technical",
-        194: "Delay of Game Technical",
-        195: "Excessive Timeout Technical",
-        196: "Illegal Defense Technical",
-        197: "Illegal Offense Technical",
-        198: "Illegal Substitution Technical",
-        199: "Illegal Timeout Technical",
-        200: "Illegal Use of Hands Technical",
-    }
+class ActionType(Enum):
+    """NBA action types (eventmsgactiontype)."""
 
+    # Made Shot actions
+    JUMP_SHOT = 1
+    LAYUP_SHOT = 2
+    DUNK_SHOT = 3
+    HOOK_SHOT = 4
+    BANK_SHOT = 5
+    FADEAWAY_SHOT = 6
+    THREE_POINT_JUMP_SHOT = 7
+    RUNNING_JUMP_SHOT = 8
+    DRIVING_JUMP_SHOT = 9
+    TURNAROUND_JUMP_SHOT = 10
+    STEP_BACK_JUMP_SHOT = 11
+    PULLUP_JUMP_SHOT = 12
+    FLOATING_JUMP_SHOT = 13
+    FINGER_ROLL_LAYUP = 14
+    DRIVING_LAYUP = 15
+    REVERSE_LAYUP = 16
+    ALLEY_OOP_LAYUP = 17
+    PUTBACK_LAYUP = 18
+    DRIVING_DUNK = 19
+    ALLEY_OOP_DUNK = 20
+    PUTBACK_DUNK = 21
+    REVERSE_DUNK = 22
+    HOOK_SHOT_MADE = 23
+    BANK_HOOK_SHOT = 24
+    TURNAROUND_HOOK_SHOT = 25
+    FADEAWAY_HOOK_SHOT = 26
+    TIP_SHOT = 27
+    CUTTING_LAYUP = 28
+    CUTTING_DUNK = 29
+    CUTTING_FINGER_ROLL = 30
 
-def get_event_statistics(db_path="db/nba.sqlite"):
-    """Get statistics about event types from the database."""
-    conn = sqlite3.connect(db_path)
+    # Missed Shot actions (100+ series)
+    JUMP_SHOT_MISSED = 101
+    LAYUP_SHOT_MISSED = 102
+    DUNK_SHOT_MISSED = 103
+    HOOK_SHOT_MISSED = 104
+    BANK_SHOT_MISSED = 105
+    FADEAWAY_SHOT_MISSED = 106
+    THREE_POINT_JUMP_SHOT_MISSED = 107
+    RUNNING_JUMP_SHOT_MISSED = 108
+    DRIVING_JUMP_SHOT_MISSED = 109
+    TURNAROUND_JUMP_SHOT_MISSED = 110
+    STEP_BACK_JUMP_SHOT_MISSED = 111
+    PULLUP_JUMP_SHOT_MISSED = 112
+    FLOATING_JUMP_SHOT_MISSED = 113
+    FINGER_ROLL_LAYUP_MISSED = 114
+    DRIVING_LAYUP_MISSED = 115
+    REVERSE_LAYUP_MISSED = 116
+    ALLEY_OOP_LAYUP_MISSED = 117
+    PUTBACK_LAYUP_MISSED = 118
+    DRIVING_DUNK_MISSED = 119
+    ALLEY_OOP_DUNK_MISSED = 120
+    PUTBACK_DUNK_MISSED = 121
+    REVERSE_DUNK_MISSED = 122
+    HOOK_SHOT_MISSED_ALT = 123
+    BANK_HOOK_SHOT_MISSED = 124
+    TURNAROUND_HOOK_SHOT_MISSED = 125
+    FADEAWAY_HOOK_SHOT_MISSED = 126
+    TIP_SHOT_MISSED = 127
+    CUTTING_LAYUP_MISSED = 128
+    CUTTING_DUNK_MISSED = 129
+    CUTTING_FINGER_ROLL_MISSED = 130
 
-    # Get event type statistics
-    event_type_query = """
-    SELECT 
-        eventmsgtype,
-        COUNT(*) as count,
-        COUNT(DISTINCT game_id) as games_with_event,
-        COUNT(DISTINCT player1_name) as unique_players
-    FROM play_by_play
-    WHERE player1_name IS NOT NULL
-    GROUP BY eventmsgtype
-    ORDER BY count DESC
-    """
+    # Free Throw actions
+    FREE_THROW_MADE = 133
+    FREE_THROW_MISSED = 134
 
-    event_types_df = pd.read_sql(event_type_query, conn)
+    # Rebound actions
+    OFFENSIVE_REBOUND = 137
+    DEFENSIVE_REBOUND = 138
 
-    # Get action type statistics
-    action_type_query = """
-    SELECT 
-        eventmsgactiontype,
-        COUNT(*) as count,
-        COUNT(DISTINCT game_id) as games_with_action,
-        COUNT(DISTINCT player1_name) as unique_players
-    FROM play_by_play
-    WHERE eventmsgactiontype IS NOT NULL AND eventmsgactiontype != 0
-    GROUP BY eventmsgactiontype
-    ORDER BY count DESC
-    """
-
-    action_types_df = pd.read_sql(action_type_query, conn)
-
-    conn.close()
-
-    return event_types_df, action_types_df
-
-
-def print_event_mappings():
-    """Print all event mappings in a readable format."""
-    print("=" * 80)
-    print("NBA DATABASE EVENT MAPPINGS")
-    print("=" * 80)
-
-    # Get mappings
-    event_types = get_event_type_mapping()
-    action_types = get_action_type_mapping()
-
-    # Print event types
-    print("\n📊 EVENT MESSAGE TYPES:")
-    print("-" * 50)
-    for event_id, description in sorted(event_types.items()):
-        print(f"  {event_id:2d}: {description}")
-
-    # Print action types
-    print("\n🎯 ACTION TYPES:")
-    print("-" * 50)
-
-    # Group by category
-    categories = {
-        "Made Shots": [k for k in action_types.keys() if 1 <= k <= 30],
-        "Missed Shots": [k for k in action_types.keys() if 101 <= k <= 130],
-        "Free Throws": [k for k in action_types.keys() if 133 <= k <= 134],
-        "Rebounds": [k for k in action_types.keys() if 137 <= k <= 138],
-        "Turnovers": [k for k in action_types.keys() if 141 <= k <= 200],
-    }
-
-    for category, action_ids in categories.items():
-        if action_ids:
-            print(f"\n  {category}:")
-            for action_id in sorted(action_ids):
-                if action_id in action_types:
-                    print(f"    {action_id:3d}: {action_types[action_id]}")
-
-
-def print_database_statistics():
-    """Print statistics from the actual database."""
-    print("\n" + "=" * 80)
-    print("DATABASE STATISTICS")
-    print("=" * 80)
-
-    try:
-        event_types_df, action_types_df = get_event_statistics()
-
-        print("\n📈 EVENT TYPE FREQUENCY:")
-        print("-" * 50)
-        event_mapping = get_event_type_mapping()
-
-        for _, row in event_types_df.head(10).iterrows():
-            event_id = row["eventmsgtype"]
-            count = row["count"]
-            games = row["games_with_event"]
-            players = row["unique_players"]
-            description = event_mapping.get(event_id, "Unknown")
-
-            print(
-                f"  {event_id:2d}: {description:<20} | Count: {count:>8,} | Games: {games:>5} | Players: {players:>4}"
-            )
-
-        print("\n🎯 TOP ACTION TYPES:")
-        print("-" * 50)
-        action_mapping = get_action_type_mapping()
-
-        for _, row in action_types_df.head(15).iterrows():
-            action_id = row["eventmsgactiontype"]
-            count = row["count"]
-            games = row["games_with_action"]
-            players = row["unique_players"]
-            description = action_mapping.get(action_id, "Unknown")
-
-            print(
-                f"  {action_id:3d}: {description:<25} | Count: {count:>8,} | Games: {games:>5} | Players: {players:>4}"
-            )
-
-    except Exception as e:
-        print(f"Error accessing database: {e}")
-        print("Make sure the database file exists at 'db/nba.sqlite'")
-
-
-def print_sample_events():
-    """Print sample events from the database."""
-    print("\n" + "=" * 80)
-    print("SAMPLE EVENTS FROM DATABASE")
-    print("=" * 80)
-
-    try:
-        conn = sqlite3.connect("db/nba.sqlite")
-
-        # Get sample events with descriptions
-        sample_query = """
-        SELECT 
-            game_id,
-            eventnum,
-            eventmsgtype,
-            eventmsgactiontype,
-            period,
-            pctimestring,
-            homedescription,
-            visitordescription,
-            neutraldescription,
-            player1_name,
-            player1_team_abbreviation,
-            player2_name,
-            player2_team_abbreviation
-        FROM play_by_play
-        WHERE player1_name IS NOT NULL
-        ORDER BY RANDOM()
-        LIMIT 10
-        """
-
-        sample_df = pd.read_sql(sample_query, conn)
-        conn.close()
-
-        event_mapping = get_event_type_mapping()
-        action_mapping = get_action_type_mapping()
-
-        print("\n🎮 SAMPLE EVENTS:")
-        print("-" * 50)
-
-        for _, row in sample_df.iterrows():
-            event_type = event_mapping.get(row["eventmsgtype"], "Unknown")
-            action_type = action_mapping.get(row["eventmsgactiontype"], "Unknown")
-
-            description = (
-                row["homedescription"]
-                or row["visitordescription"]
-                or row["neutraldescription"]
-                or "No description"
-            )
-
-            print(
-                f"\n  Game: {row['game_id']} | Event #{row['eventnum']} | Period {row['period']} | Time: {row['pctimestring']}"
-            )
-            print(f"  Type: {event_type} | Action: {action_type}")
-            print(
-                f"  Players: {row['player1_name']} ({row['player1_team_abbreviation']})"
-            )
-            if row["player2_name"]:
-                print(
-                    f"           {row['player2_name']} ({row['player2_team_abbreviation']})"
-                )
-            print(f"  Description: {description}")
-
-    except Exception as e:
-        print(f"Error accessing database: {e}")
-
-
-if __name__ == "__main__":
-    print_event_mappings()
-    print_database_statistics()
-    print_sample_events()
-
-    print("\n" + "=" * 80)
-    print("Event mappings script completed!")
-    print("=" * 80)
+    # Turnover actions
+    STEAL = 141
+    BAD_PASS = 142
+    LOST_BALL = 143
+    TRAVELING = 144
+    THREE_SECOND_VIOLATION = 145
+    FIVE_SECOND_VIOLATION = 146
+    EIGHT_SECOND_VIOLATION = 147
+    TWENTY_FOUR_SECOND_VIOLATION = 148
+    BACKCOURT_VIOLATION = 149
+    DOUBLE_DRIBBLE = 150
+    OUT_OF_BOUNDS = 151
+    OFFENSIVE_GOALTENDING = 152
+    SHOT_CLOCK_VIOLATION = 153
+    PALMING = 154
+    KICKED_BALL = 155
+    LANE_VIOLATION = 156
+    JUMP_BALL_VIOLATION = 157
+    ILLEGAL_SCREEN = 158
+    ILLEGAL_ASSIST = 159
+    ILLEGAL_DEFENSE = 160
+    ILLEGAL_OFFENSE = 161
+    ILLEGAL_SUBSTITUTION = 162
+    ILLEGAL_TIMEOUT = 163
+    ILLEGAL_USE_OF_HANDS = 164
+    ILLEGAL_CONTACT = 165
+    EXCESSIVE_TIMEOUT = 166
+    DELAY_OF_GAME = 167
+    TECHNICAL_FOUL = 168
+    FLAGRANT_FOUL = 169
+    UNSPORTSMANLIKE_FOUL = 170
+    DISQUALIFYING_FOUL = 171
+    FIGHTING = 172
+    EJECTION_FOUL = 173
+    COACH_TECHNICAL = 174
+    BENCH_TECHNICAL = 175
+    DELAY_OF_GAME_TECHNICAL = 176
+    EXCESSIVE_TIMEOUT_TECHNICAL = 177
+    ILLEGAL_DEFENSE_TECHNICAL = 178
+    ILLEGAL_OFFENSE_TECHNICAL = 179
+    ILLEGAL_SUBSTITUTION_TECHNICAL = 180
+    ILLEGAL_TIMEOUT_TECHNICAL = 181
+    ILLEGAL_USE_OF_HANDS_TECHNICAL = 182
+    ILLEGAL_CONTACT_TECHNICAL = 183
+    EXCESSIVE_TIMEOUT_TECHNICAL_ALT = 184
+    DELAY_OF_GAME_TECHNICAL_ALT = 185
+    TECHNICAL_FOUL_ALT = 186
+    FLAGRANT_FOUL_ALT = 187
+    UNSPORTSMANLIKE_FOUL_ALT = 188
+    DISQUALIFYING_FOUL_ALT = 189
+    FIGHTING_ALT = 190
+    EJECTION_FOUL_ALT = 191
+    COACH_TECHNICAL_ALT = 192
+    BENCH_TECHNICAL_ALT = 193
+    DELAY_OF_GAME_TECHNICAL_ALT2 = 194
+    EXCESSIVE_TIMEOUT_TECHNICAL_ALT2 = 195
+    ILLEGAL_DEFENSE_TECHNICAL_ALT = 196
+    ILLEGAL_OFFENSE_TECHNICAL_ALT = 197
+    ILLEGAL_SUBSTITUTION_TECHNICAL_ALT = 198
+    ILLEGAL_TIMEOUT_TECHNICAL_ALT = 199
+    ILLEGAL_USE_OF_HANDS_TECHNICAL_ALT = 200
