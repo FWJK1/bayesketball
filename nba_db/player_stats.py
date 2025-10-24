@@ -41,32 +41,20 @@ class PlayerStatsCalculator:
         """Calculate comprehensive player stats for a specific game using SQL."""
 
         # First, get player's team and total events count
-        team_query = """
+        team_query = f"""
         SELECT 
             COALESCE(
-                MAX(CASE WHEN player1_id = ? THEN player1_team_abbreviation END),
-                MAX(CASE WHEN player2_id = ? THEN player2_team_abbreviation END),
-                MAX(CASE WHEN player3_id = ? THEN player3_team_abbreviation END)
+                MAX(CASE WHEN player1_id = '{player_id}' THEN player1_team_abbreviation END),
+                MAX(CASE WHEN player2_id = '{player_id}' THEN player2_team_abbreviation END),
+                MAX(CASE WHEN player3_id = '{player_id}' THEN player3_team_abbreviation END)
             ) as team,
             COUNT(*) as total_events
         FROM play_by_play
-        WHERE game_id = ? 
-        AND (player1_id = ? OR player2_id = ? OR player3_id = ?)
+        WHERE game_id = '{game_id}' 
+        AND (player1_id = '{player_id}' OR player2_id = '{player_id}' OR player3_id = '{player_id}')
         """
 
-        team_result = pd.read_sql(
-            team_query,
-            self.conn,
-            params=[
-                player_id,
-                player_id,
-                player_id,
-                game_id,
-                player_id,
-                player_id,
-                player_id,
-            ],
-        )
+        team_result = pd.read_sql(team_query, self.conn)
 
         if team_result.empty or team_result.iloc[0]["total_events"] == 0:
             return self._empty_stats()
@@ -75,62 +63,62 @@ class PlayerStatsCalculator:
         total_events = team_result.iloc[0]["total_events"]
 
         # Calculate all stats in one comprehensive SQL query
-        stats_query = """
+        stats_query = f"""
         WITH player_events AS (
             SELECT *
             FROM play_by_play
-            WHERE game_id = ? 
-            AND (player1_id = ? OR player2_id = ? OR player3_id = ?)
+            WHERE game_id = '{game_id}' 
+            AND (player1_id = '{player_id}' OR player2_id = '{player_id}' OR player3_id = '{player_id}')
         ),
         offensive_stats AS (
             SELECT 
                 -- Shooting stats
-                COUNT(CASE WHEN eventmsgtype = 1 AND player1_id = ? THEN 1 END) as fg_made,
-                COUNT(CASE WHEN eventmsgtype IN (1, 2) AND player1_id = ? THEN 1 END) as fg_attempted,
+                COUNT(CASE WHEN eventmsgtype = 1 AND player1_id = '{player_id}' THEN 1 END) as fg_made,
+                COUNT(CASE WHEN eventmsgtype IN (1, 2) AND player1_id = '{player_id}' THEN 1 END) as fg_attempted,
                 
                 -- 3-point shooting (approximate)
-                COUNT(CASE WHEN eventmsgtype = 1 AND player1_id = ? 
+                COUNT(CASE WHEN eventmsgtype = 1 AND player1_id = '{player_id}' 
                           AND eventmsgactiontype IN (1, 7, 11, 12) THEN 1 END) as fg3_made,
-                COUNT(CASE WHEN eventmsgtype IN (1, 2) AND player1_id = ? 
+                COUNT(CASE WHEN eventmsgtype IN (1, 2) AND player1_id = '{player_id}' 
                           AND eventmsgactiontype IN (1, 7, 11, 12, 101, 107, 111, 112) THEN 1 END) as fg3_attempted,
                 
                 -- Free throws
-                COUNT(CASE WHEN eventmsgtype = 3 AND eventmsgactiontype = 133 AND player1_id = ? THEN 1 END) as ft_made,
-                COUNT(CASE WHEN eventmsgtype = 3 AND eventmsgactiontype IN (133, 134) AND player1_id = ? THEN 1 END) as ft_attempted,
+                COUNT(CASE WHEN eventmsgtype = 3 AND eventmsgactiontype = 133 AND player1_id = '{player_id}' THEN 1 END) as ft_made,
+                COUNT(CASE WHEN eventmsgtype = 3 AND eventmsgactiontype IN (133, 134) AND player1_id = '{player_id}' THEN 1 END) as ft_attempted,
                 
                 -- Assists (player1 assists player2)
-                COUNT(CASE WHEN eventmsgtype = 1 AND player2_id = ? 
-                          AND player1_team_abbreviation = ? THEN 1 END) as assists,
+                COUNT(CASE WHEN eventmsgtype = 1 AND player2_id = '{player_id}' 
+                          AND player1_team_abbreviation = '{player_team}' THEN 1 END) as assists,
                 
                 -- Turnovers
-                COUNT(CASE WHEN eventmsgtype = 5 AND player1_id = ? THEN 1 END) as turnovers,
+                COUNT(CASE WHEN eventmsgtype = 5 AND player1_id = '{player_id}' THEN 1 END) as turnovers,
                 
                 -- Offensive rebounds
-                COUNT(CASE WHEN eventmsgtype = 4 AND eventmsgactiontype = 137 AND player1_id = ? THEN 1 END) as offensive_rebounds,
+                COUNT(CASE WHEN eventmsgtype = 4 AND eventmsgactiontype = 137 AND player1_id = '{player_id}' THEN 1 END) as offensive_rebounds,
                 
                 -- Fouls drawn (player1 fouls player2)
-                COUNT(CASE WHEN eventmsgtype = 6 AND player2_id = ? 
-                          AND player1_team_abbreviation != ? THEN 1 END) as fouls_drawn
+                COUNT(CASE WHEN eventmsgtype = 6 AND player2_id = '{player_id}' 
+                          AND player1_team_abbreviation != '{player_team}' THEN 1 END) as fouls_drawn
             FROM player_events
         ),
         defensive_stats AS (
             SELECT 
                 -- Steals (player1 steals from player2)
                 COUNT(CASE WHEN eventmsgtype = 5 AND eventmsgactiontype = 141 
-                          AND player1_id = ? AND player2_team_abbreviation != ? THEN 1 END) as steals,
+                          AND player1_id = '{player_id}' AND player2_team_abbreviation != '{player_team}' THEN 1 END) as steals,
                 
                 -- Blocks (player1 blocks player2)
-                COUNT(CASE WHEN eventmsgtype = 2 AND player1_id = ? 
-                          AND player2_team_abbreviation != ? THEN 1 END) as blocks,
+                COUNT(CASE WHEN eventmsgtype = 2 AND player1_id = '{player_id}' 
+                          AND player2_team_abbreviation != '{player_team}' THEN 1 END) as blocks,
                 
                 -- Defensive rebounds
-                COUNT(CASE WHEN eventmsgtype = 4 AND eventmsgactiontype = 138 AND player1_id = ? THEN 1 END) as defensive_rebounds,
+                COUNT(CASE WHEN eventmsgtype = 4 AND eventmsgactiontype = 138 AND player1_id = '{player_id}' THEN 1 END) as defensive_rebounds,
                 
                 -- Personal fouls committed
-                COUNT(CASE WHEN eventmsgtype = 6 AND player1_id = ? THEN 1 END) as personal_fouls,
+                COUNT(CASE WHEN eventmsgtype = 6 AND player1_id = '{player_id}' THEN 1 END) as personal_fouls,
                 
                 -- Defensive events
-                COUNT(CASE WHEN player1_id = ? AND player2_team_abbreviation != ? THEN 1 END) as defensive_events
+                COUNT(CASE WHEN player1_id = '{player_id}' AND player2_team_abbreviation != '{player_team}' THEN 1 END) as defensive_events
             FROM player_events
         ),
         possession_stats AS (
@@ -139,30 +127,30 @@ class PlayerStatsCalculator:
                 COUNT(*) as total_possessions,
                 
                 -- Offensive possessions
-                COUNT(CASE WHEN (player1_id = ? AND player1_team_abbreviation = ?) OR
-                               (player2_id = ? AND player2_team_abbreviation = ?) OR
-                               (player3_id = ? AND player3_team_abbreviation = ?) THEN 1 END) as offensive_possessions,
+                COUNT(CASE WHEN (player1_id = '{player_id}' AND player1_team_abbreviation = '{player_team}') OR
+                               (player2_id = '{player_id}' AND player2_team_abbreviation = '{player_team}') OR
+                               (player3_id = '{player_id}' AND player3_team_abbreviation = '{player_team}') THEN 1 END) as offensive_possessions,
                 
                 -- Defensive possessions
-                COUNT(CASE WHEN (player1_id = ? AND player1_team_abbreviation != ?) OR
-                               (player2_id = ? AND player2_team_abbreviation != ?) OR
-                               (player3_id = ? AND player3_team_abbreviation != ?) THEN 1 END) as defensive_possessions,
+                COUNT(CASE WHEN (player1_id = '{player_id}' AND player1_team_abbreviation != '{player_team}') OR
+                               (player2_id = '{player_id}' AND player2_team_abbreviation != '{player_team}') OR
+                               (player3_id = '{player_id}' AND player3_team_abbreviation != '{player_team}') THEN 1 END) as defensive_possessions,
                 
                 -- Successful offensive possessions
-                COUNT(CASE WHEN ((player1_id = ? AND player1_team_abbreviation = ?) OR
-                                 (player2_id = ? AND player2_team_abbreviation = ?) OR
-                                 (player3_id = ? AND player3_team_abbreviation = ?))
-                          AND ((eventmsgtype = 1 AND player1_team_abbreviation = ?) OR
-                               (eventmsgtype = 3 AND eventmsgactiontype = 133 AND player1_team_abbreviation = ?) OR
-                               (eventmsgtype = 1 AND player2_team_abbreviation = ?)) THEN 1 END) as successful_offensive_possessions,
+                COUNT(CASE WHEN ((player1_id = '{player_id}' AND player1_team_abbreviation = '{player_team}') OR
+                                 (player2_id = '{player_id}' AND player2_team_abbreviation = '{player_team}') OR
+                                 (player3_id = '{player_id}' AND player3_team_abbreviation = '{player_team}'))
+                          AND ((eventmsgtype = 1 AND player1_team_abbreviation = '{player_team}') OR
+                               (eventmsgtype = 3 AND eventmsgactiontype = 133 AND player1_team_abbreviation = '{player_team}') OR
+                               (eventmsgtype = 1 AND player2_team_abbreviation = '{player_team}')) THEN 1 END) as successful_offensive_possessions,
                 
                 -- Possession outcome points (points scored from successful possessions)
-                SUM(CASE WHEN ((player1_id = ? AND player1_team_abbreviation = ?) OR
-                               (player2_id = ? AND player2_team_abbreviation = ?) OR
-                               (player3_id = ? AND player3_team_abbreviation = ?))
-                          AND ((eventmsgtype = 1 AND player1_team_abbreviation = ?) OR
-                               (eventmsgtype = 3 AND eventmsgactiontype = 133 AND player1_team_abbreviation = ?) OR
-                               (eventmsgtype = 1 AND player2_team_abbreviation = ?)) 
+                SUM(CASE WHEN ((player1_id = '{player_id}' AND player1_team_abbreviation = '{player_team}') OR
+                               (player2_id = '{player_id}' AND player2_team_abbreviation = '{player_team}') OR
+                               (player3_id = '{player_id}' AND player3_team_abbreviation = '{player_team}'))
+                          AND ((eventmsgtype = 1 AND player1_team_abbreviation = '{player_team}') OR
+                               (eventmsgtype = 3 AND eventmsgactiontype = 133 AND player1_team_abbreviation = '{player_team}') OR
+                               (eventmsgtype = 1 AND player2_team_abbreviation = '{player_team}')) 
                           THEN CASE 
                                WHEN eventmsgtype = 1 THEN 2  -- Made field goal (assuming 2 points)
                                WHEN eventmsgtype = 3 AND eventmsgactiontype = 133 THEN 1  -- Made free throw
@@ -205,66 +193,7 @@ class PlayerStatsCalculator:
         """
 
         # Execute the comprehensive query
-        stats_result = pd.read_sql(
-            stats_query,
-            self.conn,
-            params=[
-                game_id,
-                player_id,
-                player_id,
-                player_id,  # player_events CTE
-                player_id,
-                player_id,
-                player_id,
-                player_id,
-                player_id,
-                player_id,  # offensive_stats CTE
-                player_id,
-                player_team,
-                player_id,
-                player_id,
-                player_id,
-                player_id,
-                player_id,
-                player_team,  # offensive_stats CTE continued
-                player_id,
-                player_team,
-                player_id,
-                player_team,
-                player_id,
-                player_id,
-                player_id,
-                player_team,  # defensive_stats CTE
-                player_id,
-                player_id,
-                player_team,
-                player_id,
-                player_team,
-                player_id,
-                player_team,  # possession_stats CTE
-                player_id,
-                player_team,
-                player_id,
-                player_team,
-                player_id,
-                player_team,  # possession_stats CTE continued
-                player_id,
-                player_team,
-                player_id,
-                player_team,
-                player_id,
-                player_team,  # successful possessions
-                player_team,
-                player_team,
-                player_team,  # successful possessions continued
-                player_id,
-                player_team,
-                player_id,
-                player_team,
-                player_id,
-                player_team,  # possession outcome points
-            ],
-        )
+        stats_result = pd.read_sql(stats_query, self.conn)
 
         if stats_result.empty:
             return self._empty_stats()
@@ -470,7 +399,7 @@ def calculate_team_possession_metrics(game_id: str, conn) -> Dict[str, Any]:
     """Calculate team-level possession metrics for a game using SQL."""
 
     # Get team abbreviations and calculate stats in one query
-    query = """
+    query = f"""
     WITH team_stats AS (
         SELECT 
             player1_team_abbreviation as team,
@@ -485,7 +414,7 @@ def calculate_team_possession_metrics(game_id: str, conn) -> Dict[str, Any]:
                      WHEN eventmsgtype = 3 AND eventmsgactiontype = 133 THEN 1 
                      ELSE 0 END) as possession_outcome_points
         FROM play_by_play
-        WHERE game_id = ? AND player1_team_abbreviation IS NOT NULL
+        WHERE game_id = '{game_id}' AND player1_team_abbreviation IS NOT NULL
         GROUP BY player1_team_abbreviation
         HAVING COUNT(*) > 0
     ),
@@ -514,7 +443,7 @@ def calculate_team_possession_metrics(game_id: str, conn) -> Dict[str, Any]:
     ORDER BY team
     """
 
-    results = pd.read_sql(query, conn, params=[game_id])
+    results = pd.read_sql(query, conn)
 
     if results.empty or len(results) < 2:
         return {}
