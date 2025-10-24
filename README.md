@@ -322,6 +322,132 @@ Where:
 -   $u_{i_p}^T v_{j_p}$ represents player interaction effects
 -   $\sigma^2$ is the observation variance
 
+## Team-Level Aggregation
+
+### Aggregating Player Stats to Team Level
+
+Our comprehensive player statistics can be aggregated to create team-level metrics for analysis and prediction. Here's how to read the latest CSV file and create team-level aggregations:
+
+```python
+import pandas as pd
+import glob
+import os
+import numpy as np
+
+def read_latest_player_stats():
+    """Read the latest comprehensive player stats CSV file."""
+    csv_files = glob.glob("comprehensive_player_stats_*.csv")
+    if not csv_files:
+        raise FileNotFoundError("No comprehensive player stats CSV file found!")
+
+    latest_csv = max(csv_files, key=os.path.getmtime)
+    player_stats = pd.read_csv(latest_csv)
+    player_stats["game_id"] = player_stats["game_id"].astype(str).str.zfill(10)
+
+    return player_stats
+
+def aggregate_to_team_level(player_stats_df):
+    # Aggregate player stats to team level
+    team_stats = (
+        player_stats_df.groupby(["game_id", "team"])
+        .agg({
+            # Shooting statistics
+            "fg_made": "sum",
+            "fg_attempted": "sum",
+            "fg3_made": "sum",
+            "fg3_attempted": "sum",
+            "ft_made": "sum",
+            "ft_attempted": "sum",
+            "points": "sum",
+
+            # Playmaking and ball handling
+            "assists": "sum",
+            "turnovers": "sum",
+            "offensive_rebounds": "sum",
+            "defensive_rebounds": "sum",
+
+            # Defensive actions
+            "steals": "sum",
+            "blocks": "sum",
+            "personal_fouls": "sum",
+
+            # Advanced metrics (averages)
+            "fg_percentage": "mean",
+            "fg3_percentage": "mean",
+            "ft_percentage": "mean",
+            "true_shooting_percentage": "mean",
+            "assist_to_turnover_ratio": "mean",
+            "usage_rate": "mean",
+
+            # Possession metrics
+            "offensive_possessions": "sum",
+            "defensive_possessions": "sum",
+            "successful_offensive_possessions": "sum",
+            "possession_outcome_points": "sum",
+            "offensive_possession_success_rate": "mean",
+
+            # Efficiency metrics
+            "efficiency_rating": "sum",
+            "defensive_rating": "sum",
+
+            # Event counts
+            "total_events": "sum",
+            "defensive_events": "sum"
+        })
+        .reset_index()
+    )
+
+    # Calculate team-level rates and percentages
+    team_stats["team_fg_percentage"] = (
+        team_stats["fg_made"] / team_stats["fg_attempted"]
+    ).fillna(0)
+
+    team_stats["team_fg3_percentage"] = (
+        team_stats["fg3_made"] / team_stats["fg3_attempted"]
+    ).fillna(0)
+
+    team_stats["team_ft_percentage"] = (
+        team_stats["ft_made"] / team_stats["ft_attempted"]
+    ).fillna(0)
+
+    team_stats["team_assist_rate"] = (
+        team_stats["assists"] / team_stats["offensive_possessions"] * 100
+    ).fillna(0)
+
+    team_stats["team_turnover_rate"] = (
+        team_stats["turnovers"] / team_stats["offensive_possessions"] * 100
+    ).fillna(0)
+
+    team_stats["team_offensive_rating"] = (
+        team_stats["possession_outcome_points"] / team_stats["offensive_possessions"] * 100
+    ).fillna(0)
+
+    team_stats["team_defensive_rating"] = team_stats["defensive_rating"]
+
+    # Calculate rebounding rates
+    team_stats["team_offensive_rebound_rate"] = (
+        team_stats["offensive_rebounds"] /
+        (team_stats["fg_attempted"] - team_stats["fg_made"])
+    ).fillna(0)
+
+    team_stats["team_defensive_rebound_rate"] = (
+        team_stats["defensive_rebounds"] /
+        (team_stats["fg_attempted"] - team_stats["fg_made"])
+    ).fillna(0)
+
+    # Calculate steal and block rates
+    team_stats["team_steal_rate"] = (
+        team_stats["steals"] / team_stats["defensive_possessions"] * 100
+    ).fillna(0)
+
+    team_stats["team_block_rate"] = (
+        team_stats["blocks"] / team_stats["defensive_possessions"] * 100
+    ).fillna(0)
+
+    return team_stats
+
+```
+
 ## Future Enhancements
 
 -   **Full player list**: Currently we are only calculating player stats for active players, which still creates 35 million rows (#active players x #games). If we have time we can compute stats for all players, but that would mean we'd have to generate ~144 million rows.
