@@ -176,11 +176,10 @@ Results are saved as CSV files with columns:
 bayesketball/
 ├── nba_db/
 │   ├── player_stats.py      # Main statistics calculator
-│   ├── enhanced_utils.py    # Event mapping utilities
 │   └── logger.py           # Logging configuration
-├── player_stats_demo.py    # Demo script and CLI
-├── event_mappings.py       # Comprehensive event mapping
-├── event_reference.py      # Quick event reference
+├── main.py                 # Demo script and CLI
+├── event_mappings.py       # Event type and action type enums
+├── paint_points_prediction_demo.py  # Points in paint prediction demo
 └── db/
     └── nba.sqlite         # NBA play-by-play database
 ```
