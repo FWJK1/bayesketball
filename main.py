@@ -16,10 +16,7 @@ import logging
 import time
 
 from nba_db.logger import get_simple_logger
-from nba_db.player_stats import (
-    PlayerStatsCalculator,
-    set_log_level,
-)
+from nba_db.player_stats import PlayerStatsCalculator, set_log_level
 
 
 def setup_logging(level=logging.INFO):
@@ -38,6 +35,11 @@ def parse_arguments():
         type=str,
         help="Specific game ID to calculate stats for. If not provided, calculates stats for all games.",
     )
+    parser.add_argument(
+        "--agg-by-player",
+        type=bool,
+        help="Calculate offensive and defensive stats aggregated by player ID.",
+    )
     parser.add_argument("--debug", action="store_true", help="Enable debug logging")
     return parser.parse_args()
 
@@ -50,13 +52,6 @@ async def main():
     print("NBA Player Stats Calculator")
     print("=" * 50)
 
-    if args.game_id:
-        print(f"Calculating stats for game: {args.game_id}")
-        use_comprehensive = False  # Game-specific approach
-    else:
-        print("Calculating stats for all games")
-        use_comprehensive = True  # Comprehensive approach
-
     print("=" * 50)
 
     # Setup logging
@@ -64,6 +59,19 @@ async def main():
 
     # Initialize calculator
     calculator = PlayerStatsCalculator(db_path="data/nba.sqlite")
+
+    if args.agg_by_player:
+        print("Calculating stats aggregated by player ID")
+        results = await calculator.calculate_player_stats_across_all_games()
+        calculator.save_results_to_csv(results)
+        return
+
+    if args.game_id:
+        print(f"Calculating stats for game: {args.game_id}")
+        use_comprehensive = False  # Game-specific approach
+    else:
+        print("Calculating stats for all games")
+        use_comprehensive = True  # Comprehensive approach
 
     start_time = time.time()
 
