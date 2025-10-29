@@ -37,7 +37,7 @@ def parse_arguments():
     )
     parser.add_argument(
         "--agg-by-player",
-        type=bool,
+        action="store_true",
         help="Calculate offensive and defensive stats aggregated by player ID.",
     )
     parser.add_argument("--debug", action="store_true", help="Enable debug logging")
@@ -62,8 +62,8 @@ async def main():
 
     if args.agg_by_player:
         print("Calculating stats aggregated by player ID")
-        results = await calculator.calculate_player_stats_across_all_games()
-        calculator.save_results_to_csv(results)
+        results = calculator.calculate_player_stats_across_all_games()
+        results.to_csv("player_stats_across_all_games.csv", index=False)
         return
 
     if args.game_id:

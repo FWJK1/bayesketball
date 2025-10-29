@@ -77,7 +77,7 @@ class PlayerStatsCalculator:
         sql = f"""
         WITH all_players AS (
             SELECT 
-                distinct p.id as player_id,
+                distinct p.id as player_id
             FROM sqlite_db.player p
         ),
         all_player_events AS (
@@ -87,33 +87,45 @@ class PlayerStatsCalculator:
                 player1_team_abbreviation as team,
                 eventmsgtype,
                 eventmsgactiontype,
+                player2_id,
+                player2_team_abbreviation,
+                player3_id,
+                player3_team_abbreviation
             FROM sqlite_db.play_by_play
             WHERE player1_id IS NOT NULL AND player1_id != ''
-
+            
             UNION ALL
-
+            
             SELECT 
                 game_id,
                 player2_id as player_id,
                 player2_team_abbreviation as team,
                 eventmsgtype,
                 eventmsgactiontype,
+                player1_id,
+                player1_team_abbreviation,
+                player3_id,
+                player3_team_abbreviation
             FROM sqlite_db.play_by_play
             WHERE player2_id IS NOT NULL AND player2_id != ''
             
             UNION ALL
-
+            
             SELECT 
                 game_id,
                 player3_id as player_id,
                 player3_team_abbreviation as team,
                 eventmsgtype,
                 eventmsgactiontype,
+                player1_id,
+                player1_team_abbreviation,
+                player2_id,
+                player2_team_abbreviation
             FROM sqlite_db.play_by_play
             WHERE player3_id IS NOT NULL AND player3_id != ''
         )
             SELECT 
-                ape.player_id,
+                ap.player_id,
                 -- Shooting stats
                 COUNT(CASE WHEN ape.eventmsgtype = {EventType.MADE_SHOT.value} THEN 1 END) as fg_made,  -- Made Shot
                 COUNT(CASE WHEN ape.eventmsgtype IN ({EventType.MADE_SHOT.value}, {EventType.MISSED_SHOT.value}) THEN 1 END) as fg_attempted,  -- Made Shot + Missed Shot
@@ -188,7 +200,7 @@ class PlayerStatsCalculator:
                           ELSE 0 END) as possession_outcome_points
             FROM all_players ap
             LEFT JOIN all_player_events ape ON ap.player_id = ape.player_id
-            GROUP BY ap.player_id
+            GROUP BY 1
         
         """
 
