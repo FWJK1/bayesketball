@@ -5,13 +5,13 @@ calculated from play-by-play events using DuckDB.
 """
 
 import logging
-from typing import Optional, List
+from typing import List, Optional
 
 import duckdb
 import pandas as pd
 
+from event_mappings import ActionType, EventType
 from nba_db.logger import get_simple_logger
-from event_mappings import EventType, ActionType
 
 # Set up logger
 logger = get_simple_logger("nba_db.player_stats", logging.INFO)
@@ -72,6 +72,141 @@ class PlayerStatsCalculator:
         """Clean up DuckDB connection."""
         if hasattr(self, "duckdb_conn"):
             self.duckdb_conn.close()
+
+    def calculate_player_stats_across_all_games(self) -> pd.DataFrame:
+        sql = f"""
+        WITH all_players AS (
+            SELECT 
+                distinct p.id as player_id
+            FROM sqlite_db.player p
+        ),
+        all_player_events AS (
+            SELECT 
+                game_id,
+                player1_id as player_id,
+                player1_team_abbreviation as team,
+                eventmsgtype,
+                eventmsgactiontype,
+                player2_id,
+                player2_team_abbreviation,
+                player3_id,
+                player3_team_abbreviation
+            FROM sqlite_db.play_by_play
+            WHERE player1_id IS NOT NULL AND player1_id != ''
+            
+            UNION ALL
+            
+            SELECT 
+                game_id,
+                player2_id as player_id,
+                player2_team_abbreviation as team,
+                eventmsgtype,
+                eventmsgactiontype,
+                player1_id,
+                player1_team_abbreviation,
+                player3_id,
+                player3_team_abbreviation
+            FROM sqlite_db.play_by_play
+            WHERE player2_id IS NOT NULL AND player2_id != ''
+            
+            UNION ALL
+            
+            SELECT 
+                game_id,
+                player3_id as player_id,
+                player3_team_abbreviation as team,
+                eventmsgtype,
+                eventmsgactiontype,
+                player1_id,
+                player1_team_abbreviation,
+                player2_id,
+                player2_team_abbreviation
+            FROM sqlite_db.play_by_play
+            WHERE player3_id IS NOT NULL AND player3_id != ''
+        )
+            SELECT 
+                ap.player_id,
+                -- Shooting stats
+                COUNT(CASE WHEN ape.eventmsgtype = {EventType.MADE_SHOT.value} THEN 1 END) as fg_made,  -- Made Shot
+                COUNT(CASE WHEN ape.eventmsgtype IN ({EventType.MADE_SHOT.value}, {EventType.MISSED_SHOT.value}) THEN 1 END) as fg_attempted,  -- Made Shot + Missed Shot
+                
+                -- 3-point shooting (approximate)
+                COUNT(CASE WHEN ape.eventmsgtype = {EventType.MADE_SHOT.value}  -- Made Shot
+                          AND ape.eventmsgactiontype IN ({ActionType.JUMP_SHOT.value}, {ActionType.THREE_POINT_JUMP_SHOT.value}, {ActionType.STEP_BACK_JUMP_SHOT.value}, {ActionType.PULLUP_JUMP_SHOT.value}) THEN 1 END) as fg3_made,  -- Jump Shot, 3-Point Jump Shot, Step Back Jump Shot, Pullup Jump Shot
+                COUNT(CASE WHEN ape.eventmsgtype IN ({EventType.MADE_SHOT.value}, {EventType.MISSED_SHOT.value})  -- Made Shot + Missed Shot
+                          AND ape.eventmsgactiontype IN ({ActionType.JUMP_SHOT.value}, {ActionType.THREE_POINT_JUMP_SHOT.value}, {ActionType.STEP_BACK_JUMP_SHOT.value}, {ActionType.PULLUP_JUMP_SHOT.value}, {ActionType.JUMP_SHOT_MISSED.value}, {ActionType.THREE_POINT_JUMP_SHOT_MISSED.value}, {ActionType.STEP_BACK_JUMP_SHOT_MISSED.value}, {ActionType.PULLUP_JUMP_SHOT_MISSED.value}) THEN 1 END) as fg3_attempted,  -- Jump Shot, 3-Point Jump Shot, Step Back Jump Shot, Pullup Jump Shot (made + missed)
+                
+                -- Free throws
+                COUNT(CASE WHEN ape.eventmsgtype = {EventType.FREE_THROW.value} AND ape.eventmsgactiontype = {ActionType.FREE_THROW_MADE.value} THEN 1 END) as ft_made,  -- Free Throw + Free Throw Made
+                COUNT(CASE WHEN ape.eventmsgtype = {EventType.FREE_THROW.value} AND ape.eventmsgactiontype IN ({ActionType.FREE_THROW_MADE.value}, {ActionType.FREE_THROW_MISSED.value}) THEN 1 END) as ft_attempted,  -- Free Throw + Free Throw Made/Missed
+                
+                -- Assists (when player1 assists player2)
+                COUNT(CASE WHEN ape.eventmsgtype = {EventType.MADE_SHOT.value} AND ape.player2_id IS NOT NULL  -- Made Shot with assist
+                          AND ape.team = ape.player2_team_abbreviation THEN 1 END) as assists,
+                
+                -- Turnovers
+                COUNT(CASE WHEN ape.eventmsgtype = {EventType.TURNOVER.value} THEN 1 END) as turnovers,  -- Turnover
+                
+                -- Offensive rebounds
+                COUNT(CASE WHEN ape.eventmsgtype = {EventType.REBOUND.value} AND ape.eventmsgactiontype = {ActionType.OFFENSIVE_REBOUND.value} THEN 1 END) as offensive_rebounds,  -- Rebound + Offensive Rebound
+                
+                -- Fouls drawn (when player1 fouls player2)
+                COUNT(CASE WHEN ape.eventmsgtype = {EventType.FOUL.value} AND ape.player2_id IS NOT NULL  -- Foul with opponent involved
+                          AND ape.team != ape.player2_team_abbreviation THEN 1 END) as fouls_drawn,
+                
+                -- Steals (when player1 steals from player2)
+                COUNT(CASE WHEN ape.eventmsgtype = {EventType.TURNOVER.value} AND ape.eventmsgactiontype = {ActionType.STEAL.value}  -- Turnover + Steal
+                          AND ape.player2_id IS NOT NULL AND ape.team != ape.player2_team_abbreviation THEN 1 END) as steals,
+                
+                -- Blocks (when player1 blocks player2)
+                COUNT(CASE WHEN ape.eventmsgtype = {EventType.MISSED_SHOT.value} AND ape.player2_id IS NOT NULL  -- Missed Shot with opponent involved
+                          AND ape.team != ape.player2_team_abbreviation THEN 1 END) as blocks,
+                
+                -- Defensive rebounds
+                COUNT(CASE WHEN ape.eventmsgtype = {EventType.REBOUND.value} AND ape.eventmsgactiontype = {ActionType.DEFENSIVE_REBOUND.value} THEN 1 END) as defensive_rebounds,  -- Rebound + Defensive Rebound
+                
+                -- Personal fouls committed
+                COUNT(CASE WHEN ape.eventmsgtype = {EventType.FOUL.value} THEN 1 END) as personal_fouls,  -- Foul
+                
+                -- Defensive events
+                COUNT(CASE WHEN ape.player2_id IS NOT NULL AND ape.team != ape.player2_team_abbreviation THEN 1 END) as defensive_events,
+                
+                -- Total events
+                COUNT(*) as total_events,
+                
+                -- Total possessions
+                COUNT(*) as total_possessions,
+                
+                -- Offensive possessions (when player is on their team)
+                COUNT(CASE WHEN ape.team IS NOT NULL THEN 1 END) as offensive_possessions,
+                
+                -- Defensive possessions (when player is against their team)
+                COUNT(CASE WHEN ape.team IS NOT NULL AND ape.player2_id IS NOT NULL AND ape.team != ape.player2_team_abbreviation THEN 1 END) as defensive_possessions,
+                
+                -- Successful offensive possessions
+                COUNT(CASE WHEN ape.team IS NOT NULL 
+                          AND ((ape.eventmsgtype = {EventType.MADE_SHOT.value}) OR  -- Made Shot
+                               (ape.eventmsgtype = {EventType.FREE_THROW.value} AND ape.eventmsgactiontype = {ActionType.FREE_THROW_MADE.value})) THEN 1 END) as successful_offensive_possessions,  -- Free Throw + Free Throw Made
+                
+                -- Possession outcome points
+                SUM(CASE WHEN ape.team IS NOT NULL 
+                          AND ((ape.eventmsgtype = {EventType.MADE_SHOT.value}) OR  -- Made Shot
+                               (ape.eventmsgtype = {EventType.FREE_THROW.value} AND ape.eventmsgactiontype = {ActionType.FREE_THROW_MADE.value}))  -- Free Throw + Free Throw Made
+                          THEN CASE 
+                               WHEN ape.eventmsgtype = {EventType.MADE_SHOT.value} THEN 2  -- Made Shot (assuming 2 points)
+                               WHEN ape.eventmsgtype = {EventType.FREE_THROW.value} AND ape.eventmsgactiontype = {ActionType.FREE_THROW_MADE.value} THEN 1  -- Free Throw Made
+                               ELSE 0 
+                               END
+                          ELSE 0 END) as possession_outcome_points
+            FROM all_players ap
+            LEFT JOIN all_player_events ape ON ap.player_id = ape.player_id
+            GROUP BY 1
+        
+        """
+
+        result = self.duckdb_conn.execute(sql).fetchdf()
+
+        return result
 
     def calculate_all_players_all_games_stats(self) -> pd.DataFrame:
         """Calculate comprehensive stats for all players across all games using cross join with active players only."""
