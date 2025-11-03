@@ -2,25 +2,26 @@ import pandas as pd
 pd.set_option('display.max_colwidth',250)
 from event_mappings import EventType, ActionType
 
-class Possession_parser:
+class Score_parser:
     def __init__(self, game_df):
         self.game_df = game_df
         self.game_id = game_df['game_id'][0]
-        # TODO: replace team0 and team1 with home and away (unclear how to programatically determine this)
         team_ids = game_df[game_df['player1_team_id'].notna()]['player1_team_id'].unique()
-        self.team0 = team_ids[0]
-        self.team1 = team_ids[1]
-        self.is_team1_offense = True
-        self.active_team0_players = []
-        self.active_team1_players = []
+        cond = (self.game_df['visitordescription'] != None) & (self.game_df['homedescription'] == None) & (self.game_df['neutraldescription'] == None)
+        self.away_id = self.game_df[cond].iloc[0]['player1_team_id']
+        self.home_id = team_ids[0] if team_ids[1] == self.away_id else team_ids[1]
+
+        self.is_home_offense = True
+        self.active_home_players = []
+        self.active_away_players = []
         self.possessions_df = pd.DataFrame(columns=['game_id', 'possession_id', 'offense_team_id', 'possession_end_event_type', 'possession_end_points', 'active_team0_ids', 'active_team1_ids'])
         self.period_possessions_df = pd.DataFrame(columns=['game_id', 'possession_id', 'offense_team_id', 'possession_end_event_type', 'possession_end_points', 'active_team0_ids', 'active_team1_ids'])
 
     def get_offense_id(self):
-        return self.team1 if self.is_team1_offense else self.team0
-    
+        return self.home_id if self.is_home_offense else self.away_id
+
     def get_defense_id(self):
-        return self.team0 if self.is_team1_offense else self.team1
+        return self.away_id if self.is_home_offense else self.home_id
 
     def add_possession(self, possession_index ,end_event_type, end_points):
         cur_possession = {
@@ -45,7 +46,7 @@ class Possession_parser:
         self.check_player(row['player1_id'], row['player1_team_id'])
         self.check_player(row['player2_id'], row['player2_team_id'])
         self.check_player(row['player3_id'], row['player3_team_id'])
-
+ 
     def parse_game(self):
         possession_index = 0
         self.active_team0_players = []
