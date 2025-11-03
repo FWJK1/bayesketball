@@ -2,5 +2,7 @@ __pycache__/
 dev/exploratory_notebooks/
 *.cpython*
 *.sqlite
-*.csv
 *.db
+
+
+
