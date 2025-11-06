@@ -54,11 +54,11 @@ for (file in stan_files) {
     file = file,
     data = stan_data,
     chains = 4,
-    iter = 2000,
-    warmup = 1000,
-    verbose = TRUE,
+    iter = 5,
+    warmup = 0,
+    verbose = FALSE,
     refresh = 0,
-    seed = 1,
+    seed = 1
   )
 
   cat("fit complete \n")
