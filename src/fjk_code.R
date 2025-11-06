@@ -24,15 +24,17 @@ plot(x, y,
 abline(lm(y ~ x), col = "red", lwd = 2)
 ###
 
+rootwords <- c(
+  # "general_pct_non_possession",
+  "general_attempt_non_possession"
+)
 
-stan_files <- c("general_non_possession.stan")
-
-for (file in stan_files) {
+for (rootword in rootwords) {
+  file <- c(glue("src/stan/{rootword}.stan"))
   cat("starting,", file, "\n")
-  x_h_data <- as.matrix(read.csv("data/general_pct_non_possession/x_h_train.csv"))
-  x_a_data <- as.matrix(read.csv("data/general_pct_non_possession/x_a_train.csv"))
-  y_data <- read.csv("data/general_pct_non_possession/y_train.csv")$plus_minus_home
-
+  x_h_data <- as.matrix(read.csv(glue("data/{rootword}/x_h_train.csv")))
+  x_a_data <- as.matrix(read.csv(glue("data/{rootword}/x_a_train.csv")))
+  y_data <- read.csv(glue("data/{rootword}/y_train.csv"))$plus_minus_home
 
   ## clean any missing data ##
   complete_idx <- complete.cases(x_h_data, x_a_data, y_data)
@@ -54,17 +56,24 @@ for (file in stan_files) {
     file = file,
     data = stan_data,
     chains = 4,
-    iter = 5,
-    warmup = 0,
-    verbose = FALSE,
+    iter = 1500,
+    warmup = 1000,
+    verbose = FALSE, ,
     refresh = 0,
     seed = 1
   )
 
+  posterior_samples <- as.array(fit)
+
+  p_trace <- mcmc_trace(posterior_samples) +
+    labs(title = "Trace Plots for Model Parameters") +
+    theme(axis.text.y = element_text(size = 8))
+
+  print(p_trace)
+
   cat("fit complete \n")
   posterior_df <- as.data.frame(fit)
-  name <- paste0("posterior_", tools::file_path_sans_ext(file))
-  csv_name <- glue("{name}.csv")
+  csv_name <- glue("results/{rootword}_posterior.csv")
   write.csv(posterior_df, csv_name, row.names = FALSE)
   cat("saved csv \n")
 }
