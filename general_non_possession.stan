@@ -1,5 +1,5 @@
 data {
-  int<lower=0> N;   // number of data items
+  int<lower=0> N;   // number of data items (games)
   int<lower=0> K;   // number of predictors
   matrix[N, K] x_h;   // predictor matrix for home team
   matrix[N, K] x_a;   // predictor matrix for away team
