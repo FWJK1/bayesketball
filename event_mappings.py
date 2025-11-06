@@ -11,7 +11,6 @@ from enum import Enum
 
 class EventType(Enum):
     """NBA event message types (eventmsgtype)."""
-
     MADE_SHOT = 1            # Switches (ball to defense on inbound)
     MISSED_SHOT = 2          # No change; rebound decides
     FREE_THROW = 3           # Last attempt: made → switch; missed → rebound decides
