@@ -5,11 +5,15 @@ description = "Add your description here"
 readme = "README.md"
 requires-python = ">=3.14"
 dependencies = [
+    "arviz>=0.22.0",
     "duckdb>=1.4.1",
     "ipykernel>=7.0.1",
+    "matplotlib>=3.10.7",
     "numpy>=2.3.4",
     "pandas>=2.3.3",
     "pydantic>=2.0.0",
+    "pymc>=5.26.1",
     "pytest>=8.4.2",
     "scikit-learn>=1.7.2",
+    "seaborn>=0.13.2",
 ]
