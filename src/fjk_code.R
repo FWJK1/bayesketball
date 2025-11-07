@@ -6,23 +6,6 @@ library(glue)
 getwd()
 
 
-### Test that R is working properly on WSL ###
-# Sample data
-x <- 1:10
-y <- x^2 + rnorm(10, 0, 5)
-
-# Base R plot
-plot(x, y,
-  main = "Example Plot",
-  xlab = "X values",
-  ylab = "Y values",
-  pch = 19, # solid circles
-  col = "blue"
-)
-
-# Add a regression line
-abline(lm(y ~ x), col = "red", lwd = 2)
-###
 
 rootwords <- c(
   # "general_pct_non_possession",
@@ -30,6 +13,7 @@ rootwords <- c(
 )
 
 for (rootword in rootwords) {
+  dir.create(glue("results/{rootword}"), recursive = TRUE, showWarnings = FALSE)
   file <- c(glue("src/stan/{rootword}.stan"))
   cat("starting,", file, "\n")
   x_h_data <- as.matrix(read.csv(glue("data/{rootword}/x_h_train.csv")))
@@ -58,22 +42,29 @@ for (rootword in rootwords) {
     chains = 4,
     iter = 1500,
     warmup = 1000,
-    verbose = FALSE, ,
+    verbose = FALSE,
     refresh = 0,
     seed = 1
   )
+  cat("fit complete \n")
 
-  posterior_samples <- as.array(fit)
 
-  p_trace <- mcmc_trace(posterior_samples) +
+  ## Trace Plots
+  cat("fitting_trace")
+  trace_array <- as.array(fit, pars = c("alpha", "beta[1]", "beta[3]", "sigma"))
+  p_trace <- mcmc_trace(trace_array) +
     labs(title = "Trace Plots for Model Parameters") +
     theme(axis.text.y = element_text(size = 8))
-
   print(p_trace)
+  ggsave(
+    glue("results/{rootword}/trace_plot.png"),
+    plot = p_trace, width = 8, height = 6, dpi = 300
+  )
+  cat("trace_saved")
 
-  cat("fit complete \n")
-  posterior_df <- as.data.frame(fit)
-  csv_name <- glue("results/{rootword}_posterior.csv")
+  ## Save samples
+  posterior_samples <- as.array(fit, pars = c("alpha", "beta", "sigma"))
+  posterior_df <- as.data.frame(posterior_samples)
+  csv_name <- glue("results/{rootword}/posterior_samples.csv")
   write.csv(posterior_df, csv_name, row.names = FALSE)
-  cat("saved csv \n")
 }
