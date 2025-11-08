@@ -11,10 +11,21 @@ parameters {
   real<lower=0> sigma;  // error scale
 }
 model {
- // weakly informative priors
-  alpha ~ normal(0, 20);
-  beta ~ normal(0, 20); 
-  sigma ~ normal(0, 5);
+ // weakly informative priors for parameters 
+  alpha ~ normal(0, 35);
+  beta ~ normal(0, 35); 
+  sigma ~ normal(0, 10);
 
-  y ~ normal(x_h * beta - x_a * beta + alpha, sigma);  // data model
+  // combined intermediary parameter
+  vector[N] mu = x_h * beta - x_a * beta + alpha; 
+
+  // data model
+  y ~ normal(mu, sigma);  
+}
+
+generated quantities {
+  vector[N] mu = x_h * beta - x_a * beta + alpha; 
+  vector[N] log_lik;
+  for (n in 1:N)
+    log_lik[n] = normal_lpdf(y[n] | mu[n], sigma);
 }
