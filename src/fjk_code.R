@@ -3,12 +3,13 @@ library(tidyverse)
 library(rstan)
 library(bayesplot)
 library(glue)
+library(loo)
 getwd()
 
 
 
 rootwords <- c(
-  # "general_pct_non_possession",
+  "general_pct_non_possession",
   "general_attempt_non_possession"
 )
 
@@ -67,4 +68,27 @@ for (rootword in rootwords) {
   posterior_df <- as.data.frame(posterior_samples)
   csv_name <- glue("results/{rootword}/posterior_samples.csv")
   write.csv(posterior_df, csv_name, row.names = FALSE)
+  cat("file_saved")
+
+  ## Model Quality Comparison Metrics ##
+  ## psis -- loo
+  log_lik <- extract_log_lik(fit, parameter_name = "log_lik")
+  loo_result <- loo(log_lik)
+  summary_df <- as.data.frame(t(loo_result$estimates))
+  write.csv(
+    summary_df, glue("results/{rootword}/psis_loo_summary.csv"),
+    row.names = TRUE
+  )
+  cat(loo_result)
+  cat("saved loo result)")
+
+  ## WAIC
+  waic_result <- waic(log_lik)
+  summary_waic <- as.data.frame(t(waic_result$estimates))
+  write.csv(
+    summary_waic, glue("results/{rootword}/waic_summary.csv"),
+    row.names = TRUE
+  )
+  cat(waic_result)
+  cat("saved WAIC result")
 }

@@ -22,3 +22,10 @@ model {
   // data model
   y ~ normal(mu, sigma);  
 }
+
+generated quantities {
+  vector[N] mu = x_h * beta - x_a * beta + alpha; 
+  vector[N] log_lik;
+  for (n in 1:N)
+    log_lik[n] = normal_lpdf(y[n] | mu[n], sigma);
+}
