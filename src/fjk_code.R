@@ -79,7 +79,7 @@ for (rootword in rootwords) {
     summary_df, glue("results/{rootword}/psis_loo_summary.csv"),
     row.names = TRUE
   )
-  cat(loo_result)
+  print(loo_result)
   cat("saved loo result)")
 
   ## WAIC
