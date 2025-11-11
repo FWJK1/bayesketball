@@ -26,6 +26,22 @@ model {
 generated quantities {
   vector[N] mu = x_h * beta - x_a * beta + alpha; 
   vector[N] log_lik;
-  for (n in 1:N)
+  vector[N] y_prior; 
+  vector[K] beta_prior;
+  vector[N] mu_prior;
+  // --- Prior Predictive Sampling ---
+  real alpha_prior = normal_rng(0, 35);
+  for (k in 1:K) {
+    beta_prior[k] = normal_rng(0, 35);
+  }
+  real sigma_prior = -1; 
+  while (sigma_prior < 0) {
+    sigma_prior = normal_rng(0, 10);
+  }
+  mu_prior = x_h * beta_prior - x_a * beta_prior + alpha_prior;
+  for (n in 1:N){
     log_lik[n] = normal_lpdf(y[n] | mu[n], sigma);
+    y_prior[n] = normal_rng(mu_prior[n], sigma_prior);
+  }
+
 }

@@ -128,5 +128,11 @@ if __name__ == "__main__":
 
     model = build_model()
     with model:
-        idata = pm.sample(draws=2000, tune=1500, cores=4, target_accept=0.9)
+        idata = pm.sample(
+            draws=2000,
+            tune=1500,
+            cores=4,
+            target_accept=0.9,
+            idata_kwargs={"log_likelihood": True},  # need this for WAIC
+        )
         idata.to_netcdf("home_and_away.nc")
