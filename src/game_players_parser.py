@@ -69,6 +69,44 @@ def get_aggregate_stats_for_players(player_ids, season):
         'player_aggregate_pct': players_sums_pct
     }
 
+def get_aggregate_for_teams(home_id, away_id, season):
+    relevant_stats = ['FGA', 'FGM', 'FG3A', 'FG3M', 'FTA', 'FTM', 'OREB', 'DREB', 'AST', 'STL', 'BLK', 'TOV', 'PF']
+    season_df = pd.read_csv(f'{PROJECT_FILE_ROOT}data/player_stats_csv/{season}_{int(season)+1}.csv', dtype={'TEAM_ID': str})
+    
+    home_players = season_df[season_df['TEAM_ID'] == home_id]
+    home_players = home_players.sort_values(by='GP', ascending=False).head(12)
+    home_players = home_players[relevant_stats]
+    
+    home_aggregate = home_players.sum()
+    home_aggregate['FG_PCT'] = home_aggregate['FGM'] / home_aggregate['FGA']
+    home_aggregate['FG3_PCT'] = home_aggregate['FG3M'] / home_aggregate['FG3A']
+    home_aggregate['FT_PCT'] = home_aggregate['FTM'] / home_aggregate['FTA']
+
+    away_players = season_df[season_df['TEAM_ID'] == away_id]
+    away_players = away_players.sort_values(by='GP', ascending=False).head(12)
+    away_players = away_players[relevant_stats]
+
+    away_aggregate = away_players.sum()
+    away_aggregate['FG_PCT'] = away_aggregate['FGM'] / away_aggregate['FGA']
+    away_aggregate['FG3_PCT'] = away_aggregate['FG3M'] / away_aggregate['FG3A']
+    away_aggregate['FT_PCT'] = away_aggregate['FTM'] / away_aggregate['FTA']
+
+    predictor_stats_attempts = ['FGA', 'FG3A', 'FTA', 'OREB', 'DREB', 'AST', 'STL', 'BLK', 'TOV', 'PF']
+    predictor_stats_pct = ['FG_PCT', 'FG3_PCT', 'FT_PCT', 'OREB', 'DREB', 'AST', 'STL', 'BLK', 'TOV', 'PF']
+
+    return {
+        'home_aggregate': {
+            'player_aggregate_attempts': home_aggregate[predictor_stats_attempts],
+            'player_aggregate_pct': home_aggregate[predictor_stats_pct]
+        },
+        'away_aggregate': {
+            'player_aggregate_attempts': away_aggregate[predictor_stats_attempts],
+            'player_aggregate_pct': away_aggregate[predictor_stats_pct]
+        }
+    }
+
+
+
 def get_aggregate_stats_for_game(game_id, season):
     time1 = time.perf_counter()
     players = get_players_in_game(game_id)
